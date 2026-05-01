@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useGetStockTechnicals, useGetStockCandles, type GetStockCandlesResolution } from "@workspace/api-client-react";
 import {
   ComposedChart,
@@ -97,10 +98,10 @@ export default function TechnicalPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">التحليل الفني</h2>
-        <p className="text-sm text-muted-foreground">RSI وMACD والمتوسطات المتحركة</p>
-      </div>
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+        <h2 className="text-2xl font-bold text-foreground tracking-tight">التحليل الفني</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">RSI وMACD والمتوسطات المتحركة</p>
+      </motion.div>
 
       <div className="flex gap-3 items-center flex-wrap">
         <div className="relative">
@@ -174,15 +175,15 @@ export default function TechnicalPage() {
               <AreaChart data={priceData}>
                 <defs>
                   <linearGradient id="pg2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(217 90% 58%)" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="hsl(217 90% 58%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor="hsl(38 85% 54%)" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="hsl(38 85% 54%)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(222 20% 16%)" />
-                <XAxis dataKey="time" tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(222 25% 10%)", border: "1px solid hsl(222 20% 18%)", borderRadius: 8, color: "hsl(210 20% 92%)" }} />
-                <Area type="monotone" dataKey="price" stroke="hsl(217 90% 58%)" strokeWidth={2} fill="url(#pg2)" dot={false} name="السعر" connectNulls />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(74,68,63,0.4)" />
+                <XAxis dataKey="time" tick={{ fill: "hsl(0 0% 55%)", fontSize: 10 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fill: "hsl(0 0% 55%)", fontSize: 10 }} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(20 6% 14%)", border: "1px solid hsl(25 8% 22%)", borderRadius: 8, color: "hsl(210 20% 92%)" }} />
+                <Area type="monotone" dataKey="price" stroke="hsl(38 85% 54%)" strokeWidth={2} fill="url(#pg2)" dot={false} name="السعر" connectNulls />
                 <Line type="monotone" dataKey="sma20" stroke="hsl(142 76% 55%)" strokeWidth={1.5} dot={false} name="SMA20" connectNulls />
                 <Line type="monotone" dataKey="sma50" stroke="hsl(38 92% 50%)" strokeWidth={1.5} dot={false} name="SMA50" connectNulls />
               </AreaChart>
@@ -218,10 +219,10 @@ export default function TechnicalPage() {
             ) : rsiData.length > 0 ? (
               <ResponsiveContainer width="100%" height={180}>
                 <AreaChart data={rsiData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(222 20% 16%)" />
-                  <XAxis dataKey="time" tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }} tickLine={false} axisLine={false} />
-                  <YAxis domain={[0, 100]} tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: "hsl(222 25% 10%)", border: "1px solid hsl(222 20% 18%)", borderRadius: 8, color: "hsl(210 20% 92%)" }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(74,68,63,0.4)" />
+                  <XAxis dataKey="time" tick={{ fill: "hsl(0 0% 55%)", fontSize: 10 }} tickLine={false} axisLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fill: "hsl(0 0% 55%)", fontSize: 10 }} tickLine={false} axisLine={false} />
+                  <Tooltip contentStyle={{ backgroundColor: "hsl(20 6% 14%)", border: "1px solid hsl(25 8% 22%)", borderRadius: 8, color: "hsl(210 20% 92%)" }} />
                   <ReferenceLine y={70} stroke="hsl(0 84% 58%)" strokeDasharray="4 2" label={{ value: "70", fill: "hsl(0 84% 58%)", fontSize: 10 }} />
                   <ReferenceLine y={30} stroke="hsl(142 76% 55%)" strokeDasharray="4 2" label={{ value: "30", fill: "hsl(142 76% 55%)", fontSize: 10 }} />
                   <Area type="monotone" dataKey="rsi" stroke="hsl(195 80% 48%)" strokeWidth={2} fill="hsl(195 80% 48% / 0.15)" dot={false} name="RSI" connectNulls />
@@ -253,13 +254,13 @@ export default function TechnicalPage() {
             ) : macdData.length > 0 ? (
               <ResponsiveContainer width="100%" height={180}>
                 <ComposedChart data={macdData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(222 20% 16%)" />
-                  <XAxis dataKey="time" tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: "hsl(222 25% 10%)", border: "1px solid hsl(222 20% 18%)", borderRadius: 8, color: "hsl(210 20% 92%)" }} />
-                  <ReferenceLine y={0} stroke="hsl(222 20% 25%)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(74,68,63,0.4)" />
+                  <XAxis dataKey="time" tick={{ fill: "hsl(0 0% 55%)", fontSize: 10 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fill: "hsl(0 0% 55%)", fontSize: 10 }} tickLine={false} axisLine={false} />
+                  <Tooltip contentStyle={{ backgroundColor: "hsl(20 6% 14%)", border: "1px solid hsl(25 8% 22%)", borderRadius: 8, color: "hsl(210 20% 92%)" }} />
+                  <ReferenceLine y={0} stroke="rgba(74,68,63,0.5)" />
                   <Bar dataKey="histogram" name="الهيستوغرام" fill="hsl(195 80% 48%)" opacity={0.6} />
-                  <Line type="monotone" dataKey="macd" stroke="hsl(217 90% 58%)" strokeWidth={1.5} dot={false} name="MACD" connectNulls />
+                  <Line type="monotone" dataKey="macd" stroke="hsl(38 85% 54%)" strokeWidth={1.5} dot={false} name="MACD" connectNulls />
                   <Line type="monotone" dataKey="signal" stroke="hsl(0 84% 58%)" strokeWidth={1.5} dot={false} name="إشارة" connectNulls />
                 </ComposedChart>
               </ResponsiveContainer>

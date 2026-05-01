@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 function formatPrice(p: number | undefined) {
   if (p == null) return "—";
@@ -103,12 +104,17 @@ export default function HomePage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex items-center justify-between"
+      >
         <div>
-          <h2 className="text-2xl font-bold text-foreground">الرئيسية</h2>
-          <p className="text-sm text-muted-foreground">ابحث عن سهم وتتبع أداءه</p>
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">الرئيسية</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">ابحث عن سهم وتتبع أداءه</p>
         </div>
-      </div>
+      </motion.div>
 
       <div className="relative" ref={dropdownRef}>
         <div className="relative">
@@ -156,156 +162,170 @@ export default function HomePage() {
           ))
         ) : (
           <>
-            <Card className="bg-card border-card-border col-span-1 md:col-span-1">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-muted-foreground font-medium">{symbol}</span>
-                  <Badge
-                    className={cn(
-                      "text-xs font-semibold",
-                      isPositive ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30"
-                    )}
-                    variant="outline"
-                  >
-                    {isPositive ? <TrendingUp className="w-3 h-3 ml-1" /> : <TrendingDown className="w-3 h-3 ml-1" />}
-                    {formatPct(quote?.dp)}
-                  </Badge>
-                </div>
-                <p className="text-3xl font-bold text-foreground">${formatPrice(quote?.c)}</p>
-                <p className={cn("text-sm mt-1", isPositive ? "text-green-400" : "text-red-400")}>
-                  {formatChange(quote?.d)} ({formatPct(quote?.dp)})
-                </p>
-              </CardContent>
-            </Card>
+            {/* Price card */}
+            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05, duration: 0.3 }}>
+              <Card className="bg-card border-card-border card-hover h-full relative overflow-hidden">
+                <div className={cn("absolute inset-0 opacity-5 pointer-events-none", isPositive ? "bg-green-400" : "bg-red-400")} />
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-muted-foreground font-semibold tracking-wider">{symbol}</span>
+                    <Badge
+                      className={cn(
+                        "text-xs font-bold",
+                        isPositive ? "bg-green-500/15 text-green-400 border-green-500/25" : "bg-red-500/15 text-red-400 border-red-500/25"
+                      )}
+                      variant="outline"
+                    >
+                      {isPositive ? <TrendingUp className="w-3 h-3 ml-1" /> : <TrendingDown className="w-3 h-3 ml-1" />}
+                      {formatPct(quote?.dp)}
+                    </Badge>
+                  </div>
+                  <p className="text-3xl font-bold text-foreground mt-1">${formatPrice(quote?.c)}</p>
+                  <p className={cn("text-sm mt-1 font-medium", isPositive ? "text-green-400" : "text-red-400")}>
+                    {formatChange(quote?.d)} ({formatPct(quote?.dp)})
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            <Card className="bg-card border-card-border">
-              <CardContent className="p-5 space-y-2">
-                <p className="text-xs text-muted-foreground font-medium">أعلى / أدنى اليوم</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-green-400 font-semibold">${formatPrice(quote?.h)}</span>
-                  <div className="flex-1 mx-3 h-1.5 bg-muted rounded-full overflow-hidden">
-                    {quote?.h && quote?.l && quote?.c && (
-                      <div
-                        className="h-full bg-gradient-to-r from-red-400 to-green-400 rounded-full"
-                        style={{ width: `${Math.round(((quote.c - quote.l) / (quote.h - quote.l)) * 100)}%` }}
-                      />
+            {/* High/Low card */}
+            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12, duration: 0.3 }}>
+              <Card className="bg-card border-card-border card-hover h-full">
+                <CardContent className="p-5 space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium">أعلى / أدنى اليوم</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-green-400 font-semibold">${formatPrice(quote?.h)}</span>
+                    <div className="flex-1 mx-3 h-1.5 bg-muted rounded-full overflow-hidden">
+                      {quote?.h && quote?.l && quote?.c && (
+                        <motion.div
+                          className="h-full bg-gradient-to-r from-red-400 to-green-400 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.round(((quote.c - quote.l) / (quote.h - quote.l)) * 100)}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut" }}
+                        />
+                      )}
+                    </div>
+                    <span className="text-sm text-red-400 font-semibold">${formatPrice(quote?.l)}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <p className="text-xs text-muted-foreground">الافتتاح</p>
+                      <p className="text-sm font-semibold">${formatPrice(quote?.o)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">السابق</p>
+                      <p className="text-sm font-semibold">${formatPrice(quote?.pc)}</p>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-border mt-2 space-y-1.5">
+                    {candles?.v && candles.v.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <BarChart2 className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">الحجم:</span>
+                        <span className="text-xs font-semibold text-foreground">
+                          {formatVolume(candles.v[candles.v.length - 1] as number)}
+                        </span>
+                      </div>
+                    )}
+                    {quote?.peRatio != null && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-primary font-bold w-3 text-center">P</span>
+                        <span className="text-xs text-muted-foreground">مضاعف الأرباح (P/E):</span>
+                        <span className="text-xs font-semibold text-foreground">{quote.peRatio.toFixed(2)}x</span>
+                      </div>
                     )}
                   </div>
-                  <span className="text-sm text-red-400 font-semibold">${formatPrice(quote?.l)}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div>
-                    <p className="text-xs text-muted-foreground">الافتتاح</p>
-                    <p className="text-sm font-semibold">${formatPrice(quote?.o)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">السابق</p>
-                    <p className="text-sm font-semibold">${formatPrice(quote?.pc)}</p>
-                  </div>
-                </div>
-                <div className="pt-2 border-t border-border mt-2 space-y-1.5">
-                  {candles?.v && candles.v.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <BarChart2 className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">الحجم:</span>
-                      <span className="text-xs font-semibold text-foreground">
-                        {formatVolume(candles.v[candles.v.length - 1] as number)}
-                      </span>
-                    </div>
-                  )}
-                  {quote?.peRatio != null && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground w-3 text-center font-bold">P</span>
-                      <span className="text-xs text-muted-foreground">مضاعف الأرباح (P/E):</span>
-                      <span className="text-xs font-semibold text-foreground">{quote.peRatio.toFixed(2)}x</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            <Card className="bg-card border-card-border">
-              <CardContent className="p-5 space-y-2">
-                <p className="text-xs text-muted-foreground font-medium">معلومات الشركة</p>
-                <p className="text-sm font-semibold text-foreground truncate">{profile?.name ?? symbol}</p>
-                <div className="space-y-1.5">
-                  {profile?.country && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Globe className="w-3 h-3" />
-                      <span>{profile.country}</span>
-                    </div>
-                  )}
-                  {profile?.finnhubIndustry && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Building2 className="w-3 h-3" />
-                      <span>{profile.finnhubIndustry}</span>
-                    </div>
-                  )}
-                  {profile?.marketCapitalization && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Users className="w-3 h-3" />
-                      <span>القيمة السوقية: {(profile.marketCapitalization / 1000).toFixed(1)}B$</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Company info card */}
+            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.20, duration: 0.3 }}>
+              <Card className="bg-card border-card-border card-hover h-full">
+                <CardContent className="p-5 space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium">معلومات الشركة</p>
+                  <p className="text-base font-bold text-foreground truncate">{profile?.name ?? symbol}</p>
+                  <div className="space-y-1.5">
+                    {profile?.country && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Globe className="w-3 h-3 text-primary/70" />
+                        <span>{profile.country}</span>
+                      </div>
+                    )}
+                    {profile?.finnhubIndustry && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Building2 className="w-3 h-3 text-primary/70" />
+                        <span>{profile.finnhubIndustry}</span>
+                      </div>
+                    )}
+                    {profile?.marketCapitalization && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Users className="w-3 h-3 text-primary/70" />
+                        <span>القيمة السوقية: {(profile.marketCapitalization / 1000).toFixed(1)}B$</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </>
         )}
       </div>
 
-      <Card className="bg-card border-card-border">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold">مخطط السعر</CardTitle>
-            <div className="flex gap-1">
-              {PERIODS.map((p) => (
-                <button
-                  key={p.value}
-                  onClick={() => setPeriod(p)}
-                  className={cn(
-                    "px-3 py-1 text-xs rounded-md font-medium transition-all",
-                    period.value === p.value
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  )}
-                >
-                  {p.label}
-                </button>
-              ))}
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28, duration: 0.3 }}>
+        <Card className="bg-card border-card-border">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold">مخطط السعر</CardTitle>
+              <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
+                {PERIODS.map((p) => (
+                  <button
+                    key={p.value}
+                    onClick={() => setPeriod(p)}
+                    className={cn(
+                      "px-3 py-1 text-xs rounded-md font-medium transition-all duration-200",
+                      period.value === p.value
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pb-4">
-          {candlesLoading ? (
-            <div className="h-64 bg-muted/30 rounded-lg animate-pulse" />
-          ) : chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(217 90% 58%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(217 90% 58%)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(222 20% 16%)" />
-                <XAxis dataKey="time" tick={{ fill: "hsl(215 18% 52%)", fontSize: 11 }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fill: "hsl(215 18% 52%)", fontSize: 11 }} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "hsl(222 25% 10%)", border: "1px solid hsl(222 20% 18%)", borderRadius: 8, color: "hsl(210 20% 92%)" }}
-                  labelStyle={{ color: "hsl(215 18% 52%)" }}
-                  formatter={(v: number) => [`$${v?.toFixed(2)}`, "السعر"]}
-                />
-                <Area type="monotone" dataKey="price" stroke="hsl(217 90% 58%)" strokeWidth={2} fill="url(#priceGradient)" dot={false} activeDot={{ r: 4 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-64 flex items-center justify-center text-muted-foreground">
-              لا توجد بيانات متاحة
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="pb-4">
+            {candlesLoading ? (
+              <div className="h-64 bg-muted/30 rounded-lg animate-pulse" />
+            ) : chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(38 85% 54%)" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="hsl(38 85% 54%)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(74,68,63,0.4)" />
+                  <XAxis dataKey="time" tick={{ fill: "hsl(0 0% 55%)", fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fill: "hsl(0 0% 55%)", fontSize: 11 }} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "hsl(20 6% 14%)", border: "1px solid hsl(25 8% 22%)", borderRadius: 10, color: "hsl(0 0% 95%)" }}
+                    labelStyle={{ color: "hsl(0 0% 55%)" }}
+                    formatter={(v: number) => [`$${v?.toFixed(2)}`, "السعر"]}
+                  />
+                  <Area type="monotone" dataKey="price" stroke="hsl(38 85% 54%)" strokeWidth={2.5} fill="url(#priceGradient)" dot={false} activeDot={{ r: 5, fill: "hsl(38 85% 54%)", strokeWidth: 0 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-muted-foreground">
+                لا توجد بيانات متاحة
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

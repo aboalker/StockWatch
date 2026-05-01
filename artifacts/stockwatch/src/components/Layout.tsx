@@ -9,12 +9,12 @@ import {
   LogIn,
   LogOut,
   User,
-  Activity,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 const navItems = [
   { href: "/", label: "الرئيسية", icon: BarChart3 },
@@ -30,84 +30,137 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
-      <aside className="w-64 flex-shrink-0 bg-sidebar border-l border-sidebar-border flex flex-col">
-        <div className="p-5 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-            <Activity className="w-5 h-5 text-white" />
+      {/* Sidebar */}
+      <aside className="w-64 flex-shrink-0 bg-sidebar border-l border-sidebar-border flex flex-col relative overflow-hidden">
+        {/* Ambient top glow */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-primary/8 to-transparent pointer-events-none" />
+
+        {/* Logo */}
+        <div className="p-5 flex items-center gap-3 relative z-10">
+          <div className="relative w-10 h-10 rounded-xl bg-primary flex items-center justify-center gold-glow flex-shrink-0">
+            <Zap className="w-5 h-5 text-primary-foreground fill-current" />
           </div>
           <div>
-            <h1 className="font-bold text-base text-sidebar-foreground leading-tight">مراقب الأسهم</h1>
-            <p className="text-xs text-muted-foreground">StockWatch</p>
+            <h1 className="font-bold text-base text-sidebar-foreground leading-tight tracking-wide">مراقب الأسهم</h1>
+            <p className="text-[11px] text-muted-foreground font-medium tracking-widest uppercase">StockWatch</p>
           </div>
         </div>
 
-        <Separator className="bg-sidebar-border" />
+        <div className="mx-4 h-px bg-gradient-to-l from-transparent via-sidebar-border to-transparent" />
 
-        <nav className="flex-1 p-3 space-y-1">
-          {navItems.map(({ href, label, icon: Icon }) => {
+        {/* Nav */}
+        <nav className="flex-1 p-3 space-y-0.5 mt-2">
+          {navItems.map(({ href, label, icon: Icon }, i) => {
             const active = location === href;
             return (
               <Link key={href} href={href}>
-                <div
+                <motion.div
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05, duration: 0.25 }}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-150",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 relative group",
                     active
-                      ? "bg-primary text-primary-foreground shadow-sm"
+                      ? "bg-primary text-primary-foreground shadow-md"
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   )}
                 >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span>{label}</span>
                   {active && (
-                    <div className="mr-auto w-1.5 h-1.5 rounded-full bg-primary-foreground/70" />
+                    <motion.div
+                      layoutId="nav-active"
+                      className="absolute inset-0 rounded-xl bg-primary"
+                      style={{ zIndex: -1 }}
+                      transition={{ type: "spring", stiffness: 380, damping: 36 }}
+                    />
                   )}
-                </div>
+                  <Icon className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200", !active && "group-hover:scale-110")} />
+                  <span className="relative z-10">{label}</span>
+                  {active && (
+                    <div className="mr-auto relative flex-shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-primary-foreground/60 relative pulse-live" />
+                    </div>
+                  )}
+                </motion.div>
               </Link>
             );
           })}
         </nav>
 
-        <Separator className="bg-sidebar-border" />
+        <div className="mx-4 h-px bg-gradient-to-l from-transparent via-sidebar-border to-transparent" />
 
+        {/* User area */}
         <div className="p-4">
-          {isLoading ? (
-            <div className="h-10 rounded-lg bg-muted animate-pulse" />
-          ) : user ? (
-            <div className="flex items-center gap-3">
-              <Avatar className="w-9 h-9 flex-shrink-0">
-                <AvatarImage src={user.profileImageUrl ?? undefined} />
-                <AvatarFallback className="bg-primary/20 text-primary text-sm font-bold">
-                  {user.firstName?.charAt(0) ?? <User className="w-4 h-4" />}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  {user.firstName ?? "مستخدم"}
-                </p>
-                <button
-                  onClick={logout}
-                  className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors"
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-10 rounded-xl bg-muted animate-pulse"
+              />
+            ) : user ? (
+              <motion.div
+                key="user"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="flex items-center gap-3"
+              >
+                <Avatar className="w-9 h-9 flex-shrink-0 ring-2 ring-primary/30">
+                  <AvatarImage src={user.profileImageUrl ?? undefined} />
+                  <AvatarFallback className="bg-primary/20 text-primary text-sm font-bold">
+                    {user.firstName?.charAt(0) ?? <User className="w-4 h-4" />}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-sidebar-foreground truncate">
+                    {user.firstName ?? "مستخدم"}
+                  </p>
+                  <button
+                    onClick={logout}
+                    className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors duration-150 mt-0.5"
+                  >
+                    <LogOut className="w-3 h-3" />
+                    تسجيل الخروج
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="login"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+              >
+                <Button
+                  onClick={login}
+                  className="w-full gap-2 text-sm font-semibold"
+                  size="sm"
                 >
-                  <LogOut className="w-3 h-3" />
-                  تسجيل الخروج
-                </button>
-              </div>
-            </div>
-          ) : (
-            <Button
-              onClick={login}
-              className="w-full gap-2 text-sm"
-              size="sm"
-            >
-              <LogIn className="w-4 h-4" />
-              تسجيل الدخول
-            </Button>
-          )}
+                  <LogIn className="w-4 h-4" />
+                  تسجيل الدخول
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </aside>
 
+      {/* Main content with page transition */}
       <main className="flex-1 overflow-y-auto">
-        {children}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="h-full"
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

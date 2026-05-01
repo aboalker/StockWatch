@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useCompareStocks, getCompareStocksQueryKey } from "@workspace/api-client-react";
 import type { StockComparisonItem } from "@workspace/api-client-react";
+import { motion } from "framer-motion";
 import {
   LineChart,
   Line,
@@ -21,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const COLORS = [
-  "hsl(217 90% 58%)",
+  "hsl(38 85% 54%)",
   "hsl(142 76% 55%)",
   "hsl(38 92% 50%)",
   "hsl(195 80% 48%)",
@@ -104,10 +105,10 @@ export default function ComparePage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">مقارنة الأسهم</h2>
-        <p className="text-sm text-muted-foreground">قارن أداء حتى ٤ أسهم في آن واحد</p>
-      </div>
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+        <h2 className="text-2xl font-bold text-foreground tracking-tight">مقارنة الأسهم</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">قارن أداء حتى ٤ أسهم في آن واحد</p>
+      </motion.div>
 
       <Card className="bg-card border-card-border">
         <CardContent className="p-5">
@@ -186,16 +187,16 @@ export default function ComparePage() {
           ) : displayData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={displayData} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(222 20% 16%)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(74,68,63,0.4)" />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }}
+                  tick={{ fill: "hsl(0 0% 55%)", fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
                   interval={Math.floor(displayData.length / 6)}
                 />
                 <YAxis
-                  tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }}
+                  tick={{ fill: "hsl(0 0% 55%)", fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={(v) => `${v > 0 ? "+" : ""}${v}%`}
@@ -203,8 +204,8 @@ export default function ComparePage() {
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "hsl(222 25% 10%)",
-                    border: "1px solid hsl(222 20% 18%)",
+                    backgroundColor: "hsl(20 6% 14%)",
+                    border: "1px solid hsl(25 8% 22%)",
                     borderRadius: 8,
                     color: "hsl(210 20% 92%)",
                   }}
@@ -212,14 +213,14 @@ export default function ComparePage() {
                     `${v > 0 ? "+" : ""}${v?.toFixed(2)}%`,
                     name,
                   ]}
-                  labelStyle={{ color: "hsl(215 18% 52%)", marginBottom: 4 }}
+                  labelStyle={{ color: "hsl(0 0% 55%)", marginBottom: 4 }}
                 />
                 <Legend
                   formatter={(value) => (
                     <span style={{ color: "hsl(210 20% 85%)", fontSize: 12 }}>{value}</span>
                   )}
                 />
-                <ReferenceLine y={0} stroke="hsl(215 18% 35%)" strokeDasharray="4 4" />
+                <ReferenceLine y={0} stroke="hsl(25 8% 30%)" strokeDasharray="4 4" />
                 {tableData.map((item, i) => (
                   <Line
                     key={item.symbol}
