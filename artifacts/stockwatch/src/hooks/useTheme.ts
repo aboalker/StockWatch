@@ -8,12 +8,16 @@ function applyTheme(theme: Theme) {
   root.classList.add(theme);
 }
 
+function getInitialTheme(): Theme {
+  const stored = localStorage.getItem("stockwatch-theme") as Theme | null;
+  return stored === "light" ? "light" : "dark";
+}
+
+const initialTheme = getInitialTheme();
+applyTheme(initialTheme);
+
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem("stockwatch-theme") as Theme | null;
-    if (stored === "light" || stored === "dark") return stored;
-    return "dark";
-  });
+  const [theme, setTheme] = useState<Theme>(initialTheme);
 
   useEffect(() => {
     applyTheme(theme);

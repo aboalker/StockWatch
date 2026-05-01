@@ -67,7 +67,7 @@
 }
 
 /* ─── Warm-Light Theme ────────────────────────────────────────────── */
-.light {
+:root.light {
   --button-outline: rgba(120,80,20, .12);
   --badge-outline: rgba(120,80,20, .08);
   --opaque-button-border-intensity: 9;
@@ -282,7 +282,7 @@
       radial-gradient(ellipse 60% 40% at 90% 100%, rgba(140,100,50,0.05) 0%, transparent 60%);
   }
 
-  .light body {
+  html.light body {
     background-image:
       radial-gradient(ellipse 80% 50% at 10% 0%, rgba(200,150,60,0.07) 0%, transparent 60%),
       radial-gradient(ellipse 60% 40% at 90% 100%, rgba(180,130,50,0.05) 0%, transparent 60%);
