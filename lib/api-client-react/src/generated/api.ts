@@ -1335,7 +1335,7 @@ export const getGetWatchlistPricesQueryKey = () => {
 
 export const getGetWatchlistPricesQueryOptions = <
   TData = Awaited<ReturnType<typeof getWatchlistPrices>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
 >(options?: {
   query?: UseQueryOptions<
     Awaited<ReturnType<typeof getWatchlistPrices>>,
@@ -1362,7 +1362,7 @@ export const getGetWatchlistPricesQueryOptions = <
 export type GetWatchlistPricesQueryResult = NonNullable<
   Awaited<ReturnType<typeof getWatchlistPrices>>
 >;
-export type GetWatchlistPricesQueryError = ErrorType<unknown>;
+export type GetWatchlistPricesQueryError = ErrorType<ErrorResponse>;
 
 /**
  * @summary Get live prices for all watchlist items
@@ -1370,7 +1370,7 @@ export type GetWatchlistPricesQueryError = ErrorType<unknown>;
 
 export function useGetWatchlistPrices<
   TData = Awaited<ReturnType<typeof getWatchlistPrices>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
 >(options?: {
   query?: UseQueryOptions<
     Awaited<ReturnType<typeof getWatchlistPrices>>,

@@ -352,6 +352,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/WatchlistPriceItem"
+        "401":
+          description: Unauthorized — user must be authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /ai/chat:
     post:
@@ -373,6 +379,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AiChatResponse"
+        "401":
+          description: Unauthorized — user must be authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "503":
           description: AI service unavailable
           content:

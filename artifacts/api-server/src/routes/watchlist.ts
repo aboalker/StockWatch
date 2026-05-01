@@ -93,7 +93,7 @@ router.delete("/watchlist/:symbol", async (req, res): Promise<void> => {
 
 router.get("/watchlist/prices", async (req, res): Promise<void> => {
   if (!req.isAuthenticated()) {
-    res.json([]);
+    res.status(401).json({ error: "Unauthorized" });
     return;
   }
   const userId = req.user!.id;
