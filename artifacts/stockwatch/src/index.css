@@ -66,6 +66,76 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* ─── Warm-Light Theme ────────────────────────────────────────────── */
+.light {
+  --button-outline: rgba(120,80,20, .12);
+  --badge-outline: rgba(120,80,20, .08);
+  --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(120,80,20, .04);
+  --elevate-2: rgba(120,80,20, .08);
+
+  --background: 38 30% 96%;
+  --foreground: 20 25% 12%;
+
+  --border: 35 20% 82%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 20 25% 12%;
+  --card-border: 35 20% 86%;
+
+  --sidebar: 38 25% 92%;
+  --sidebar-foreground: 20 25% 15%;
+  --sidebar-border: 35 18% 80%;
+
+  --sidebar-primary: 38 85% 44%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 38 25% 85%;
+  --sidebar-accent-foreground: 20 25% 18%;
+  --sidebar-ring: 38 85% 44%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 25% 12%;
+  --popover-border: 35 20% 84%;
+
+  --primary: 38 85% 44%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 38 20% 88%;
+  --secondary-foreground: 20 25% 15%;
+
+  --muted: 38 18% 90%;
+  --muted-foreground: 20 12% 45%;
+
+  --accent: 30 60% 45%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 52%;
+  --destructive-foreground: 0 0% 100%;
+
+  --input: 35 18% 88%;
+  --ring: 38 85% 44%;
+
+  --chart-1: 38 85% 44%;
+  --chart-2: 142 60% 40%;
+  --chart-3: 195 70% 42%;
+  --chart-4: 0 68% 48%;
+  --chart-5: 270 55% 52%;
+
+  --shadow-2xs: 0px 1px 3px 0px rgba(100,70,20,0.12);
+  --shadow-xs:  0px 2px 6px 0px rgba(100,70,20,0.14);
+  --shadow-sm:  0px 3px 10px -1px rgba(100,70,20,0.16);
+  --shadow:     0px 6px 16px -2px rgba(100,70,20,0.18);
+  --shadow-md:  0px 8px 22px -4px rgba(100,70,20,0.2);
+
+  --sidebar-primary-border: hsl(38 85% 36%);
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --primary-border: hsl(38 85% 36%);
+  --secondary-border: hsl(var(--secondary));
+  --muted-border: hsl(var(--muted));
+  --accent-border: hsl(var(--accent));
+  --destructive-border: hsl(var(--destructive));
+}
+
 /* ─── Warm-Dark Theme ─────────────────────────────────────────────── */
 :root {
   --button-outline: rgba(242,222,186, .12);
@@ -210,6 +280,12 @@
     background-image:
       radial-gradient(ellipse 80% 50% at 10% 0%, rgba(180,130,60,0.06) 0%, transparent 60%),
       radial-gradient(ellipse 60% 40% at 90% 100%, rgba(140,100,50,0.05) 0%, transparent 60%);
+  }
+
+  .light body {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 10% 0%, rgba(200,150,60,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(180,130,50,0.05) 0%, transparent 60%);
   }
 }
 

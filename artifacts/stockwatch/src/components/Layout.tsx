@@ -10,11 +10,14 @@ import {
   LogOut,
   User,
   Zap,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "@/hooks/useTheme";
 
 const navItems = [
   { href: "/", label: "الرئيسية", icon: BarChart3 },
@@ -27,6 +30,7 @@ const navItems = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user, isLoading, login, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
@@ -40,10 +44,29 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="relative w-10 h-10 rounded-xl bg-primary flex items-center justify-center gold-glow flex-shrink-0">
             <Zap className="w-5 h-5 text-primary-foreground fill-current" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="font-bold text-base text-sidebar-foreground leading-tight tracking-wide">مراقب الأسهم</h1>
             <p className="text-[11px] text-muted-foreground font-medium tracking-widest uppercase">StockWatch</p>
           </div>
+          <motion.button
+            onClick={toggleTheme}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.93 }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors flex-shrink-0"
+            title={theme === "dark" ? "الوضع المضيء" : "الوضع المظلم"}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {theme === "dark" ? (
+                <motion.span key="sun" initial={{ rotate: -60, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 60, opacity: 0 }} transition={{ duration: 0.2 }}>
+                  <Sun className="w-4 h-4" />
+                </motion.span>
+              ) : (
+                <motion.span key="moon" initial={{ rotate: 60, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -60, opacity: 0 }} transition={{ duration: 0.2 }}>
+                  <Moon className="w-4 h-4" />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
         </div>
 
         <div className="mx-4 h-px bg-gradient-to-l from-transparent via-sidebar-border to-transparent" />
