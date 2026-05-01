@@ -6,7 +6,18 @@ const router: IRouter = Router();
 
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
 
-async function finnhubQuote(symbol: string): Promise<any> {
+interface FinnhubQuote {
+  c: number;
+  d: number;
+  dp: number;
+  h: number;
+  l: number;
+  o: number;
+  pc: number;
+  t: number;
+}
+
+async function finnhubQuote(symbol: string): Promise<FinnhubQuote | null> {
   const token = process.env.FINNHUB_API_KEY;
   if (!token) return null;
   try {
@@ -15,7 +26,7 @@ async function finnhubQuote(symbol: string): Promise<any> {
     url.searchParams.set("token", token);
     const res = await fetch(url.toString());
     if (!res.ok) return null;
-    return res.json() as Promise<any>;
+    return (await res.json()) as FinnhubQuote;
   } catch {
     return null;
   }
@@ -96,9 +107,9 @@ router.get("/watchlist/prices", async (req, res): Promise<void> => {
       const quote = await finnhubQuote(item.symbol);
       return {
         symbol: item.symbol,
-        currentPrice: (quote?.c as number) || 0,
-        changePercent: (quote?.dp as number) || 0,
-        change: (quote?.d as number) || 0,
+        currentPrice: quote?.c ?? 0,
+        changePercent: quote?.dp ?? 0,
+        change: quote?.d ?? 0,
       };
     })
   );

@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { useGetWatchlist, useGetWatchlistPrices, useAddToWatchlist, useRemoveFromWatchlist } from "@workspace/api-client-react";
+import {
+  useGetWatchlist,
+  getGetWatchlistQueryKey,
+  useGetWatchlistPrices,
+  getGetWatchlistPricesQueryKey,
+  useAddToWatchlist,
+  useRemoveFromWatchlist,
+} from "@workspace/api-client-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { Plus, Trash2, TrendingUp, TrendingDown, BookMarked, LogIn } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,14 +20,12 @@ export default function WatchlistPage() {
   const { user, isLoading: authLoading, login } = useAuth();
   const [input, setInput] = useState("");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: watchlist, isLoading: wlLoading, refetch } = useGetWatchlist({
-    query: { enabled: !!user } as any,
+    query: { queryKey: getGetWatchlistQueryKey(), enabled: !!user },
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: prices } = useGetWatchlistPrices({
-    query: { enabled: !!user && (watchlist?.length ?? 0) > 0 } as any,
+    query: { queryKey: getGetWatchlistPricesQueryKey(), enabled: !!user && (watchlist?.length ?? 0) > 0 },
   });
 
   const addMutation = useAddToWatchlist({

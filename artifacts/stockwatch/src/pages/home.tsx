@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   useSearchStocks,
+  getSearchStocksQueryKey,
   useGetStockQuote,
   useGetStockCandles,
   useGetCompanyProfile,
@@ -63,8 +64,7 @@ export default function HomePage() {
 
   const { data: searchResults } = useSearchStocks(
     { q: query },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    { query: { enabled: query.length >= 2 } as any }
+    { query: { queryKey: getSearchStocksQueryKey({ q: query }), enabled: query.length >= 2 } }
   );
 
   const now = Math.floor(Date.now() / 1000);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCompareStocks } from "@workspace/api-client-react";
+import { useCompareStocks, getCompareStocksQueryKey } from "@workspace/api-client-react";
 import type { StockComparisonItem } from "@workspace/api-client-react";
 import {
   LineChart,
@@ -32,9 +32,9 @@ function buildTimeSeriesData(stocks: StockComparisonItem[]) {
 
   const stockMaps: Map<string, number>[] = stocks.map((stock) => {
     const map = new Map<string, number>();
-    const t: number[] = (stock.candles as any)?.t ?? [];
-    const c: number[] = (stock.candles as any)?.c ?? [];
-    t.forEach((ts: number, i: number) => {
+    const t: number[] = stock.candles.t ?? [];
+    const c: number[] = stock.candles.c ?? [];
+    t.forEach((ts, i) => {
       if (c[i] != null && c[i] > 0) {
         const dateStr = new Date(ts * 1000).toISOString().slice(0, 10);
         map.set(dateStr, c[i]);
@@ -49,9 +49,12 @@ function buildTimeSeriesData(stocks: StockComparisonItem[]) {
 
   if (allDates.length === 0) return [];
 
-  const baseValues: (number | null)[] = stocks.map((_, i) =>
-    stockMaps[i].get(allDates[0]) ?? null
-  );
+  // Use each stock's own first available candle as baseline (not global first date)
+  // This prevents null baselines when a stock has no data on the earliest global date
+  const baseValues: (number | null)[] = stocks.map((_, i) => {
+    const sortedDates = Array.from(stockMaps[i].keys()).sort();
+    return sortedDates.length > 0 ? (stockMaps[i].get(sortedDates[0]) ?? null) : null;
+  });
 
   return allDates.map((date) => {
     const point: Record<string, number | string | null> = {
@@ -78,8 +81,7 @@ export default function ComparePage() {
 
   const { data, isLoading } = useCompareStocks(
     { symbols: symbols.join(",") },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    { query: { enabled: symbols.length >= 1 } as any }
+    { query: { queryKey: getCompareStocksQueryKey({ symbols: symbols.join(",") }), enabled: symbols.length >= 1 } }
   );
 
   function addSymbol() {

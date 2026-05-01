@@ -4,7 +4,54 @@ const router: IRouter = Router();
 
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
 
-async function finnhub(path: string, params: Record<string, string | number> = {}): Promise<any> {
+interface FinnhubSearchResult {
+  symbol: string;
+  description: string;
+  type: string;
+  displaySymbol: string;
+}
+
+interface FinnhubSearchResponse {
+  result: FinnhubSearchResult[];
+}
+
+interface FinnhubQuote {
+  c: number;
+  d: number;
+  dp: number;
+  h: number;
+  l: number;
+  o: number;
+  pc: number;
+  t: number;
+}
+
+interface FinnhubCandle {
+  c: number[];
+  h: number[];
+  l: number[];
+  o: number[];
+  v: number[];
+  t: number[];
+  s: string;
+}
+
+interface FinnhubProfile {
+  name: string;
+  ticker: string;
+  country: string;
+  currency: string;
+  exchange: string;
+  ipo: string;
+  marketCapitalization: number;
+  shareOutstanding: number;
+  logo: string;
+  finnhubIndustry: string;
+  weburl: string;
+  phone: string;
+}
+
+async function finnhub<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
   const token = process.env.FINNHUB_API_KEY;
   if (!token) throw new Error("FINNHUB_API_KEY is not configured");
 
@@ -16,7 +63,7 @@ async function finnhub(path: string, params: Record<string, string | number> = {
 
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`Finnhub error: ${res.status} ${res.statusText}`);
-  return res.json() as Promise<any>;
+  return (await res.json()) as T;
 }
 
 // Calculate RSI from close prices
@@ -79,22 +126,25 @@ function calculateMACD(closes: number[], fast = 12, slow = 26, signal = 9) {
     return result;
   }
 
-  const fastEMA = ema(closes, fast);
-  const slowEMA = ema(closes, slow);
-  const macdLine = closes.map((_, i) =>
-    i < slow - 1 ? null : Math.round((fastEMA[i] - slowEMA[i]) * 100) / 100
-  );
-  const validMacd = macdLine.filter((v): v is number => v !== null);
-  const signalEMA = ema(validMacd, signal);
+  const fastEma = ema(closes, fast);
+  const slowEma = ema(closes, slow);
 
-  const signalLine: (number | null)[] = macdLine.map(() => null);
-  let sigIdx = 0;
-  for (let i = 0; i < macdLine.length; i++) {
-    if (macdLine[i] !== null) {
-      signalLine[i] = sigIdx < signalEMA.length ? Math.round(signalEMA[sigIdx] * 100) / 100 : null;
-      sigIdx++;
-    }
-  }
+  const macdLine = fastEma.map((f, i) =>
+    f !== 0 && slowEma[i] !== 0
+      ? Math.round((f - slowEma[i]) * 100) / 100
+      : null
+  );
+
+  const validMacd = macdLine.filter((v): v is number => v !== null);
+  const signalEmaInput = validMacd.length >= signal ? validMacd : [];
+  const signalEmaResult = signalEmaInput.length ? ema(signalEmaInput, signal) : [];
+
+  const signalLine: (number | null)[] = macdLine.map((m, i) => {
+    const validIdx = macdLine.slice(0, i + 1).filter((v): v is number => v !== null).length - 1;
+    if (m === null || validIdx < 0 || validIdx >= signalEmaResult.length) return null;
+    const s = signalEmaResult[validIdx];
+    return s !== 0 ? Math.round(s * 100) / 100 : null;
+  });
 
   const histogram = macdLine.map((m, i) =>
     m !== null && signalLine[i] !== null
@@ -112,8 +162,8 @@ router.get("/stocks/search", async (req, res): Promise<void> => {
       res.status(400).json({ error: "Query parameter 'q' is required" });
       return;
     }
-    const data = await finnhub("/search", { q });
-    const results = (data.result || []).slice(0, 20).map((r: Record<string, string>) => ({
+    const data = await finnhub<FinnhubSearchResponse>("/search", { q });
+    const results = (data.result || []).slice(0, 20).map((r) => ({
       symbol: r.symbol,
       description: r.description,
       type: r.type,
@@ -129,7 +179,7 @@ router.get("/stocks/search", async (req, res): Promise<void> => {
 router.get("/stocks/:symbol/quote", async (req, res): Promise<void> => {
   try {
     const symbol = Array.isArray(req.params.symbol) ? req.params.symbol[0] : req.params.symbol;
-    const data = await finnhub("/quote", { symbol: symbol.toUpperCase() });
+    const data = await finnhub<FinnhubQuote>("/quote", { symbol: symbol.toUpperCase() });
     if (!data.c || data.c === 0) {
       res.status(404).json({ error: "Stock not found or no data available" });
       return;
@@ -156,7 +206,7 @@ async function fetchYahooCandles(
   from: number,
   to: number,
   resolution: string,
-): Promise<{ c: number[]; h: number[]; l: number[]; o: number[]; v: number[]; t: number[]; s: string }> {
+): Promise<FinnhubCandle> {
   const intervalMap: Record<string, string> = {
     "1": "1m", "5": "5m", "15": "15m", "30": "30m",
     "60": "60m", "D": "1d", "W": "1wk", "M": "1mo",
@@ -171,7 +221,22 @@ async function fetchYahooCandles(
     },
   });
   if (!resp.ok) throw new Error(`Yahoo Finance error: ${resp.status}`);
-  const json: any = await resp.json();
+  const json = (await resp.json()) as {
+    chart?: {
+      result?: Array<{
+        timestamp?: number[];
+        indicators?: {
+          quote?: Array<{
+            close?: number[];
+            high?: number[];
+            low?: number[];
+            open?: number[];
+            volume?: number[];
+          }>;
+        };
+      }>;
+    };
+  };
   const result = json?.chart?.result?.[0];
   if (!result) throw new Error("No data from Yahoo Finance");
 
@@ -189,6 +254,23 @@ async function fetchYahooCandles(
   };
 }
 
+async function fetchCandles(symbol: string, from: number, to: number, resolution: string): Promise<FinnhubCandle> {
+  try {
+    const finnhubData = await finnhub<FinnhubCandle>("/stock/candle", {
+      symbol: symbol.toUpperCase(),
+      resolution,
+      from,
+      to,
+    });
+    if (finnhubData.s === "ok" && finnhubData.c?.length) {
+      return finnhubData;
+    }
+    throw new Error("No Finnhub data");
+  } catch {
+    return fetchYahooCandles(symbol.toUpperCase(), from, to, resolution);
+  }
+}
+
 router.get("/stocks/:symbol/candles", async (req, res): Promise<void> => {
   try {
     const symbol = Array.isArray(req.params.symbol) ? req.params.symbol[0] : req.params.symbol;
@@ -197,22 +279,7 @@ router.get("/stocks/:symbol/candles", async (req, res): Promise<void> => {
     const from = req.query.from ? Number(req.query.from) : now - 365 * 24 * 3600;
     const to = req.query.to ? Number(req.query.to) : now;
 
-    let data;
-    try {
-      const finnhubData = await finnhub("/stock/candle", {
-        symbol: symbol.toUpperCase(),
-        resolution,
-        from,
-        to,
-      });
-      if (finnhubData.s === "ok" && finnhubData.c?.length) {
-        data = finnhubData;
-      } else {
-        throw new Error("No Finnhub data");
-      }
-    } catch {
-      data = await fetchYahooCandles(symbol.toUpperCase(), from, to, resolution);
-    }
+    const data = await fetchCandles(symbol, from, to, resolution);
 
     res.json({
       c: data.c || [],
@@ -232,7 +299,7 @@ router.get("/stocks/:symbol/candles", async (req, res): Promise<void> => {
 router.get("/stocks/:symbol/profile", async (req, res): Promise<void> => {
   try {
     const symbol = Array.isArray(req.params.symbol) ? req.params.symbol[0] : req.params.symbol;
-    const data = await finnhub("/stock/profile2", { symbol: symbol.toUpperCase() });
+    const data = await finnhub<FinnhubProfile>("/stock/profile2", { symbol: symbol.toUpperCase() });
     res.json({
       name: data.name || symbol,
       ticker: data.ticker || symbol,
@@ -258,24 +325,22 @@ router.get("/stocks/:symbol/technicals", async (req, res): Promise<void> => {
     const symbol = Array.isArray(req.params.symbol) ? req.params.symbol[0] : req.params.symbol;
     const resolution = String(req.query.resolution || "D");
     const now = Math.floor(Date.now() / 1000);
-    const reqFrom = req.query.from ? Number(req.query.from) : now - 365 * 24 * 3600;
-    const from = Math.min(reqFrom, now - 90 * 24 * 3600);
+    const from = req.query.from ? Number(req.query.from) : now - 365 * 24 * 3600;
+    const to = req.query.to ? Number(req.query.to) : now;
 
-    let data: any;
+    let data: FinnhubCandle;
     try {
-      const finnhubData = await finnhub("/stock/candle", {
-        symbol: symbol.toUpperCase(),
-        resolution,
-        from,
-        to: now,
-      });
-      if (finnhubData.s === "ok" && finnhubData.c?.length) {
-        data = finnhubData;
-      } else {
-        throw new Error("No Finnhub data");
-      }
+      data = await fetchCandles(symbol, from, to, resolution);
     } catch {
-      data = await fetchYahooCandles(symbol.toUpperCase(), from, now, resolution);
+      res.json({
+        symbol: symbol.toUpperCase(),
+        rsi: { values: [], timestamps: [] },
+        macd: { macdLine: [], signalLine: [], histogram: [], timestamps: [] },
+        sma20: { values: [], timestamps: [] },
+        sma50: { values: [], timestamps: [] },
+        sma200: { values: [], timestamps: [] },
+      });
+      return;
     }
 
     if (!data.c || data.s !== "ok" || !data.c.length) {
@@ -328,26 +393,27 @@ router.get("/stocks/compare", async (req, res): Promise<void> => {
     const results = await Promise.all(
       symbols.map(async (symbol) => {
         const [candles, quote, profile] = await Promise.all([
-          finnhub("/stock/candle", { symbol, resolution, from, to: now })
-            .then((d: any) => (d.s === "ok" && d.c?.length ? d : null))
-            .catch(() => null)
-            .then((d: any) => d ?? fetchYahooCandles(symbol, from, now, resolution).catch(() => ({
-              c: [], h: [], l: [], o: [], v: [], t: [], s: "no_data",
-            }))),
-          finnhub("/quote", { symbol }).catch(() => ({ c: 0, dp: 0 })),
-          finnhub("/stock/profile2", { symbol }).catch(() => ({ name: symbol })),
+          fetchCandles(symbol, from, now, resolution).catch(
+            (): FinnhubCandle => ({ c: [], h: [], l: [], o: [], v: [], t: [], s: "no_data" })
+          ),
+          finnhub<FinnhubQuote>("/quote", { symbol }).catch((): FinnhubQuote => ({
+            c: 0, d: 0, dp: 0, h: 0, l: 0, o: 0, pc: 0, t: 0,
+          })),
+          finnhub<FinnhubProfile>("/stock/profile2", { symbol }).catch(
+            (): Pick<FinnhubProfile, "name"> => ({ name: symbol })
+          ),
         ]);
         return {
           symbol,
           name: profile.name || symbol,
           candles: {
-            c: candles.c || [],
-            h: candles.h || [],
-            l: candles.l || [],
-            o: candles.o || [],
-            v: candles.v || [],
-            t: candles.t || [],
-            s: candles.s || "no_data",
+            c: candles.c,
+            h: candles.h,
+            l: candles.l,
+            o: candles.o,
+            v: candles.v,
+            t: candles.t,
+            s: candles.s,
           },
           currentPrice: quote.c || 0,
           changePercent: quote.dp || 0,
