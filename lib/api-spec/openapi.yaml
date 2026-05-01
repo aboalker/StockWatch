@@ -481,6 +481,10 @@ components:
         t:
           type: integer
           description: Unix timestamp
+        peRatio:
+          type: number
+          nullable: true
+          description: Price-to-earnings ratio (trailing twelve months)
 
     StockCandles:
       type: object

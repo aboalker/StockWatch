@@ -51,6 +51,14 @@ interface FinnhubProfile {
   phone: string;
 }
 
+interface FinnhubBasicFinancials {
+  metric: {
+    peTTM?: number;
+    peNormalizedAnnual?: number;
+    [key: string]: number | undefined;
+  };
+}
+
 async function finnhub<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
   const token = process.env.FINNHUB_API_KEY;
   if (!token) throw new Error("FINNHUB_API_KEY is not configured");
@@ -176,10 +184,41 @@ router.get("/stocks/search", async (req, res): Promise<void> => {
   }
 });
 
+async function fetchPeRatio(symbol: string): Promise<number | null> {
+  try {
+    const metrics = await finnhub<FinnhubBasicFinancials>("/stock/metric", {
+      symbol,
+      metric: "all",
+    });
+    const pe = metrics?.metric?.peTTM ?? metrics?.metric?.peNormalizedAnnual ?? null;
+    return typeof pe === "number" && pe > 0 ? Math.round(pe * 100) / 100 : null;
+  } catch {
+    try {
+      const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=summaryDetail`;
+      const resp = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
+      });
+      if (!resp.ok) return null;
+      const json = (await resp.json()) as {
+        quoteSummary?: {
+          result?: Array<{ summaryDetail?: { trailingPE?: { raw?: number } } }>;
+        };
+      };
+      const pe = json?.quoteSummary?.result?.[0]?.summaryDetail?.trailingPE?.raw ?? null;
+      return typeof pe === "number" && pe > 0 ? Math.round(pe * 100) / 100 : null;
+    } catch {
+      return null;
+    }
+  }
+}
+
 router.get("/stocks/:symbol/quote", async (req, res): Promise<void> => {
   try {
     const symbol = Array.isArray(req.params.symbol) ? req.params.symbol[0] : req.params.symbol;
-    const data = await finnhub<FinnhubQuote>("/quote", { symbol: symbol.toUpperCase() });
+    const [data, peRatio] = await Promise.all([
+      finnhub<FinnhubQuote>("/quote", { symbol: symbol.toUpperCase() }),
+      fetchPeRatio(symbol.toUpperCase()),
+    ]);
     if (!data.c || data.c === 0) {
       res.status(404).json({ error: "Stock not found or no data available" });
       return;
@@ -194,6 +233,7 @@ router.get("/stocks/:symbol/quote", async (req, res): Promise<void> => {
       o: data.o,
       pc: data.pc,
       t: data.t,
+      peRatio,
     });
   } catch (err) {
     req.log.error({ err }, "Stock quote failed");

@@ -203,15 +203,24 @@ export default function HomePage() {
                     <p className="text-sm font-semibold">${formatPrice(quote?.pc)}</p>
                   </div>
                 </div>
-                {candles?.v && candles.v.length > 0 && (
-                  <div className="flex items-center gap-2 pt-2 border-t border-border mt-2">
-                    <BarChart2 className="w-3 h-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">الحجم:</span>
-                    <span className="text-xs font-semibold text-foreground">
-                      {formatVolume(candles.v[candles.v.length - 1] as number)}
-                    </span>
-                  </div>
-                )}
+                <div className="pt-2 border-t border-border mt-2 space-y-1.5">
+                  {candles?.v && candles.v.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <BarChart2 className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">الحجم:</span>
+                      <span className="text-xs font-semibold text-foreground">
+                        {formatVolume(candles.v[candles.v.length - 1] as number)}
+                      </span>
+                    </div>
+                  )}
+                  {quote?.peRatio != null && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground w-3 text-center font-bold">P</span>
+                      <span className="text-xs text-muted-foreground">مضاعف الأرباح (P/E):</span>
+                      <span className="text-xs font-semibold text-foreground">{quote.peRatio.toFixed(2)}x</span>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 

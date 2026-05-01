@@ -54,6 +54,8 @@ export interface StockQuote {
   pc: number;
   /** Unix timestamp */
   t: number;
+  /** Price-to-earnings ratio (trailing twelve months) */
+  peRatio?: number | null;
 }
 
 export interface StockCandles {

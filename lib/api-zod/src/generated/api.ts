@@ -95,6 +95,10 @@ export const GetStockQuoteResponse = zod.object({
   o: zod.number().describe("Open price of the day"),
   pc: zod.number().describe("Previous close price"),
   t: zod.number().describe("Unix timestamp"),
+  peRatio: zod
+    .number()
+    .nullish()
+    .describe("Price-to-earnings ratio (trailing twelve months)"),
 });
 
 /**
