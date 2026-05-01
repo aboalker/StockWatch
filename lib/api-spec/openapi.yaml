@@ -1,22 +1,29 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: StockWatch API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: Auth
+    description: Browser authentication endpoints.
+  - name: stocks
+    description: Stock market data
+  - name: watchlist
+    description: User watchlist management
+  - name: ai
+    description: AI investment advisor chat
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,7 +31,362 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/user:
+    get:
+      tags: [Auth]
+      operationId: getCurrentAuthUser
+      summary: Get the currently authenticated user
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '200':
+          description: Auth status resolved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserEnvelope'
+
+  /login:
+    get:
+      tags: [Auth]
+      operationId: beginBrowserLogin
+      summary: Start the browser OIDC login flow
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to the OIDC authorization endpoint.
+
+  /callback:
+    get:
+      tags: [Auth]
+      operationId: handleBrowserLoginCallback
+      summary: Complete the browser OIDC login flow
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: iss
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uri
+      responses:
+        '302':
+          description: Redirect after login.
+
+  /logout:
+    get:
+      tags: [Auth]
+      operationId: logoutBrowserSession
+      summary: Clear session and begin OIDC logout
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '302':
+          description: Redirect to OIDC provider logout.
+
+  /stocks/search:
+    get:
+      operationId: searchStocks
+      tags: [stocks]
+      summary: Search for stocks by name or symbol
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of matching stocks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockSearchResult"
+
+  /stocks/{symbol}/quote:
+    get:
+      operationId: getStockQuote
+      tags: [stocks]
+      summary: Get current stock quote
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current stock quote
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockQuote"
+        "404":
+          description: Stock not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stocks/{symbol}/candles:
+    get:
+      operationId: getStockCandles
+      tags: [stocks]
+      summary: Get historical price data (OHLCV)
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: resolution
+          in: query
+          required: false
+          schema:
+            type: string
+            default: D
+            enum: [1, 5, 15, 30, 60, D, W, M]
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Historical candle data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockCandles"
+
+  /stocks/{symbol}/profile:
+    get:
+      operationId: getCompanyProfile
+      tags: [stocks]
+      summary: Get company profile and basic info
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Company profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyProfile"
+
+  /stocks/{symbol}/technicals:
+    get:
+      operationId: getStockTechnicals
+      tags: [stocks]
+      summary: Get technical indicators (RSI, MACD, MA)
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: resolution
+          in: query
+          required: false
+          schema:
+            type: string
+            default: D
+      responses:
+        "200":
+          description: Technical indicators
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TechnicalIndicators"
+
+  /stocks/compare:
+    get:
+      operationId: compareStocks
+      tags: [stocks]
+      summary: Compare multiple stocks performance
+      parameters:
+        - name: symbols
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Comma-separated list of symbols
+        - name: resolution
+          in: query
+          required: false
+          schema:
+            type: string
+            default: D
+      responses:
+        "200":
+          description: Comparison data for multiple stocks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockComparisonItem"
+
+  /watchlist:
+    get:
+      operationId: getWatchlist
+      tags: [watchlist]
+      summary: Get current user's watchlist
+      parameters:
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        "200":
+          description: User watchlist
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WatchlistItem"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      operationId: addToWatchlist
+      tags: [watchlist]
+      summary: Add a stock to watchlist
+      parameters:
+        - $ref: '#/components/parameters/SessionCookie'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddToWatchlistBody"
+      responses:
+        "201":
+          description: Stock added to watchlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchlistItem"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /watchlist/{symbol}:
+    delete:
+      operationId: removeFromWatchlist
+      tags: [watchlist]
+      summary: Remove a stock from watchlist
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        "204":
+          description: Stock removed from watchlist
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /watchlist/prices:
+    get:
+      operationId: getWatchlistPrices
+      tags: [watchlist]
+      summary: Get live prices for all watchlist items
+      parameters:
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        "200":
+          description: Live prices for watchlist items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WatchlistPriceItem"
+
+  /ai/chat:
+    post:
+      operationId: sendAiChatMessage
+      tags: [ai]
+      summary: Send a message to the AI investment advisor
+      parameters:
+        - $ref: '#/components/parameters/SessionCookie'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiChatRequest"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiChatResponse"
+        "503":
+          description: AI service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
+  parameters:
+    AuthorizationSessionHeader:
+      name: Authorization
+      in: header
+      required: false
+      description: Opaque session token — `Bearer <sid>`.
+      schema:
+        type: string
+    SessionCookie:
+      name: sid
+      in: cookie
+      required: false
+      description: Browser session cookie.
+      schema:
+        type: string
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +396,298 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    AuthUser:
+      type: object
+      required: [id, email, firstName, lastName, profileImageUrl]
+      properties:
+        id:
+          type: string
+        email:
+          type: ["string", "null"]
+          format: email
+        firstName:
+          type: ["string", "null"]
+        lastName:
+          type: ["string", "null"]
+        profileImageUrl:
+          type: ["string", "null"]
+
+    AuthUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/AuthUser'
+            - type: 'null'
+
+    StockSearchResult:
+      type: object
+      required: [symbol, description, type, displaySymbol]
+      properties:
+        symbol:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+        displaySymbol:
+          type: string
+
+    StockQuote:
+      type: object
+      required: [symbol, c, d, dp, h, l, o, pc, t]
+      properties:
+        symbol:
+          type: string
+        c:
+          type: number
+          description: Current price
+        d:
+          type: number
+          description: Change
+        dp:
+          type: number
+          description: Percent change
+        h:
+          type: number
+          description: High price of the day
+        l:
+          type: number
+          description: Low price of the day
+        o:
+          type: number
+          description: Open price of the day
+        pc:
+          type: number
+          description: Previous close price
+        t:
+          type: integer
+          description: Unix timestamp
+
+    StockCandles:
+      type: object
+      required: [c, h, l, o, v, t, s]
+      properties:
+        c:
+          type: array
+          items:
+            type: number
+          description: Close prices
+        h:
+          type: array
+          items:
+            type: number
+          description: High prices
+        l:
+          type: array
+          items:
+            type: number
+          description: Low prices
+        o:
+          type: array
+          items:
+            type: number
+          description: Open prices
+        v:
+          type: array
+          items:
+            type: number
+          description: Volumes
+        t:
+          type: array
+          items:
+            type: integer
+          description: Unix timestamps
+        s:
+          type: string
+          description: Status (ok or no_data)
+
+    CompanyProfile:
+      type: object
+      required: [name, ticker, country, currency, exchange, ipo, marketCapitalization, shareOutstanding, logo, finnhubIndustry]
+      properties:
+        name:
+          type: string
+        ticker:
+          type: string
+        country:
+          type: ["string", "null"]
+        currency:
+          type: ["string", "null"]
+        exchange:
+          type: ["string", "null"]
+        ipo:
+          type: ["string", "null"]
+        marketCapitalization:
+          type: ["number", "null"]
+        shareOutstanding:
+          type: ["number", "null"]
+        logo:
+          type: ["string", "null"]
+        finnhubIndustry:
+          type: ["string", "null"]
+        weburl:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+
+    TechnicalIndicators:
+      type: object
+      required: [symbol, rsi, macd, sma20, sma50, sma200]
+      properties:
+        symbol:
+          type: string
+        rsi:
+          type: object
+          required: [values, timestamps]
+          properties:
+            values:
+              type: array
+              items:
+                type: ["number", "null"]
+            timestamps:
+              type: array
+              items:
+                type: integer
+        macd:
+          type: object
+          required: [macdLine, signalLine, histogram, timestamps]
+          properties:
+            macdLine:
+              type: array
+              items:
+                type: ["number", "null"]
+            signalLine:
+              type: array
+              items:
+                type: ["number", "null"]
+            histogram:
+              type: array
+              items:
+                type: ["number", "null"]
+            timestamps:
+              type: array
+              items:
+                type: integer
+        sma20:
+          type: object
+          required: [values, timestamps]
+          properties:
+            values:
+              type: array
+              items:
+                type: ["number", "null"]
+            timestamps:
+              type: array
+              items:
+                type: integer
+        sma50:
+          type: object
+          required: [values, timestamps]
+          properties:
+            values:
+              type: array
+              items:
+                type: ["number", "null"]
+            timestamps:
+              type: array
+              items:
+                type: integer
+        sma200:
+          type: object
+          required: [values, timestamps]
+          properties:
+            values:
+              type: array
+              items:
+                type: ["number", "null"]
+            timestamps:
+              type: array
+              items:
+                type: integer
+
+    StockComparisonItem:
+      type: object
+      required: [symbol, name, candles, currentPrice, changePercent]
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        candles:
+          $ref: "#/components/schemas/StockCandles"
+        currentPrice:
+          type: number
+        changePercent:
+          type: number
+
+    WatchlistItem:
+      type: object
+      required: [id, symbol, addedAt]
+      properties:
+        id:
+          type: integer
+        symbol:
+          type: string
+        addedAt:
+          type: string
+          format: date-time
+
+    AddToWatchlistBody:
+      type: object
+      required: [symbol]
+      properties:
+        symbol:
+          type: string
+          minLength: 1
+          maxLength: 20
+
+    WatchlistPriceItem:
+      type: object
+      required: [symbol, currentPrice, changePercent, change]
+      properties:
+        symbol:
+          type: string
+        currentPrice:
+          type: number
+        changePercent:
+          type: number
+        change:
+          type: number
+
+    AiChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+
+    AiChatRequest:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiChatMessage"
+        symbol:
+          type: ["string", "null"]
+          description: Optional stock symbol for context
+
+    AiChatResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
