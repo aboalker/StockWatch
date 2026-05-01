@@ -4,7 +4,7 @@ const router: IRouter = Router();
 
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
 
-async function finnhub(path: string, params: Record<string, string | number> = {}) {
+async function finnhub(path: string, params: Record<string, string | number> = {}): Promise<any> {
   const token = process.env.FINNHUB_API_KEY;
   if (!token) throw new Error("FINNHUB_API_KEY is not configured");
 
@@ -16,7 +16,7 @@ async function finnhub(path: string, params: Record<string, string | number> = {
 
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`Finnhub error: ${res.status} ${res.statusText}`);
-  return res.json();
+  return res.json() as Promise<any>;
 }
 
 // Calculate RSI from close prices

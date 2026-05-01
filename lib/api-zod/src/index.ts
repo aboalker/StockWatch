@@ -1,1 +1,16 @@
 export * from "./generated/api";
+export type { AuthUser } from "./generated/types/authUser";
+export type { AuthUserEnvelope } from "./generated/types/authUserEnvelope";
+export type { StockQuote } from "./generated/types/stockQuote";
+export type { StockCandles } from "./generated/types/stockCandles";
+export type { CompanyProfile } from "./generated/types/companyProfile";
+export type { StockComparisonItem } from "./generated/types/stockComparisonItem";
+export type { TechnicalIndicators } from "./generated/types/technicalIndicators";
+export type { WatchlistItem } from "./generated/types/watchlistItem";
+export type { WatchlistPriceItem } from "./generated/types/watchlistPriceItem";
+export type { AiChatMessage } from "./generated/types/aiChatMessage";
+export type { AiChatRequest } from "./generated/types/aiChatRequest";
+export type { AiChatResponse } from "./generated/types/aiChatResponse";
+export type { StockSearchResult } from "./generated/types/stockSearchResult";
+export type { ErrorResponse } from "./generated/types/errorResponse";
+export type { HealthStatus } from "./generated/types/healthStatus";

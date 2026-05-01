@@ -8,4 +8,6 @@
 
 export type GetStockTechnicalsParams = {
   resolution?: string;
+  from?: number;
+  to?: number;
 };

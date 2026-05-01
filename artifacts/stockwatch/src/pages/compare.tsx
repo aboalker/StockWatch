@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useCompareStocks } from "@workspace/api-client-react";
+import type { StockComparisonItem } from "@workspace/api-client-react";
 import {
   LineChart,
   Line,
@@ -9,6 +10,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 import { Plus, X, TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,13 +27,59 @@ const COLORS = [
   "hsl(195 80% 48%)",
 ];
 
+function buildTimeSeriesData(stocks: StockComparisonItem[]) {
+  if (!stocks.length) return [];
+
+  const stockMaps: Map<string, number>[] = stocks.map((stock) => {
+    const map = new Map<string, number>();
+    const t: number[] = (stock.candles as any)?.t ?? [];
+    const c: number[] = (stock.candles as any)?.c ?? [];
+    t.forEach((ts: number, i: number) => {
+      if (c[i] != null && c[i] > 0) {
+        const dateStr = new Date(ts * 1000).toISOString().slice(0, 10);
+        map.set(dateStr, c[i]);
+      }
+    });
+    return map;
+  });
+
+  const allDates = Array.from(
+    new Set(stockMaps.flatMap((m) => Array.from(m.keys())))
+  ).sort();
+
+  if (allDates.length === 0) return [];
+
+  const baseValues: (number | null)[] = stocks.map((_, i) =>
+    stockMaps[i].get(allDates[0]) ?? null
+  );
+
+  return allDates.map((date) => {
+    const point: Record<string, number | string | null> = {
+      date: date.slice(5),
+    };
+    stocks.forEach((stock, i) => {
+      const price = stockMaps[i].get(date) ?? null;
+      const base = baseValues[i];
+      if (price != null && base != null && base > 0) {
+        point[stock.symbol ?? `S${i}`] = parseFloat(
+          (((price - base) / base) * 100).toFixed(2)
+        );
+      } else {
+        point[stock.symbol ?? `S${i}`] = null;
+      }
+    });
+    return point;
+  });
+}
+
 export default function ComparePage() {
   const [symbols, setSymbols] = useState<string[]>(["AAPL", "MSFT"]);
   const [input, setInput] = useState("");
 
   const { data, isLoading } = useCompareStocks(
     { symbols: symbols.join(",") },
-    { query: { enabled: symbols.length >= 1 } }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { query: { enabled: symbols.length >= 1 } as any }
   );
 
   function addSymbol() {
@@ -47,6 +95,10 @@ export default function ComparePage() {
   }
 
   const tableData = data ?? [];
+  const chartData = buildTimeSeriesData(tableData);
+
+  const sampleEvery = Math.max(1, Math.floor(chartData.length / 60));
+  const displayData = chartData.filter((_, i) => i % sampleEvery === 0 || i === chartData.length - 1);
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -114,8 +166,8 @@ export default function ComparePage() {
                       {isPos ? "+" : ""}{(item.changePercent ?? 0).toFixed(2)}%
                     </p>
                     <div className="mt-2 pt-2 border-t border-border">
-                    <p className="text-xs text-muted-foreground truncate">{item.name ?? ""}</p>
-                  </div>
+                      <p className="text-xs text-muted-foreground truncate">{item.name ?? ""}</p>
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -124,37 +176,65 @@ export default function ComparePage() {
 
       <Card className="bg-card border-card-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">مقارنة الأسعار الحالية</CardTitle>
+          <CardTitle className="text-base font-semibold">الأداء النسبي — آخر سنة (%)</CardTitle>
         </CardHeader>
         <CardContent className="pb-4">
           {isLoading ? (
-            <div className="h-64 bg-muted/30 rounded-lg animate-pulse" />
-          ) : tableData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={tableData.map((item) => ({ name: item.symbol, price: item.currentPrice }))}>
+            <div className="h-72 bg-muted/30 rounded-lg animate-pulse" />
+          ) : displayData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={displayData} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(222 20% 16%)" />
-                <XAxis dataKey="name" tick={{ fill: "hsl(215 18% 52%)", fontSize: 11 }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fill: "hsl(215 18% 52%)", fontSize: 11 }} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "hsl(222 25% 10%)", border: "1px solid hsl(222 20% 18%)", borderRadius: 8, color: "hsl(210 20% 92%)" }}
-                  formatter={(v: number) => [`$${v?.toFixed(2)}`, "السعر"]}
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval={Math.floor(displayData.length / 6)}
                 />
-                <Legend formatter={(v) => v} />
+                <YAxis
+                  tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => `${v > 0 ? "+" : ""}${v}%`}
+                  domain={["auto", "auto"]}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(222 25% 10%)",
+                    border: "1px solid hsl(222 20% 18%)",
+                    borderRadius: 8,
+                    color: "hsl(210 20% 92%)",
+                  }}
+                  formatter={(v: number, name: string) => [
+                    `${v > 0 ? "+" : ""}${v?.toFixed(2)}%`,
+                    name,
+                  ]}
+                  labelStyle={{ color: "hsl(215 18% 52%)", marginBottom: 4 }}
+                />
+                <Legend
+                  formatter={(value) => (
+                    <span style={{ color: "hsl(210 20% 85%)", fontSize: 12 }}>{value}</span>
+                  )}
+                />
+                <ReferenceLine y={0} stroke="hsl(215 18% 35%)" strokeDasharray="4 4" />
                 {tableData.map((item, i) => (
                   <Line
                     key={item.symbol}
                     type="monotone"
-                    dataKey="price"
-                    name={item.symbol ?? ""}
+                    dataKey={item.symbol ?? `S${i}`}
+                    name={item.symbol ?? `S${i}`}
                     stroke={COLORS[i]}
                     strokeWidth={2}
-                    dot={{ fill: COLORS[i], r: 5 }}
+                    dot={false}
+                    activeDot={{ r: 4, strokeWidth: 0 }}
+                    connectNulls={true}
                   />
                 ))}
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-64 flex items-center justify-center text-muted-foreground">
+            <div className="h-72 flex items-center justify-center text-muted-foreground">
               أضف أسهماً للمقارنة
             </div>
           )}

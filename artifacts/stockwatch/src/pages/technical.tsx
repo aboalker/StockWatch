@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useGetStockTechnicals, useGetStockCandles } from "@workspace/api-client-react";
+import { useGetStockTechnicals, useGetStockCandles, type GetStockCandlesResolution } from "@workspace/api-client-react";
 import {
   ComposedChart,
   Line,
@@ -56,7 +56,7 @@ export default function TechnicalPage() {
   });
 
   const { data: candles } = useGetStockCandles(symbol, {
-    resolution: period.resolution,
+    resolution: period.resolution as GetStockCandlesResolution,
     from,
     to: now,
   });

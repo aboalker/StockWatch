@@ -6,7 +6,7 @@ const router: IRouter = Router();
 
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
 
-async function finnhubQuote(symbol: string) {
+async function finnhubQuote(symbol: string): Promise<any> {
   const token = process.env.FINNHUB_API_KEY;
   if (!token) return null;
   try {
@@ -15,7 +15,7 @@ async function finnhubQuote(symbol: string) {
     url.searchParams.set("token", token);
     const res = await fetch(url.toString());
     if (!res.ok) return null;
-    return res.json();
+    return res.json() as Promise<any>;
   } catch {
     return null;
   }
@@ -26,10 +26,11 @@ router.get("/watchlist", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  const userId = req.user!.id;
   const items = await db
     .select()
     .from(watchlistTable)
-    .where(eq(watchlistTable.userId, req.user.id));
+    .where(eq(watchlistTable.userId, userId));
   res.json(items);
 });
 
@@ -38,17 +39,17 @@ router.post("/watchlist", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  const userId = req.user!.id;
   const symbol = String(req.body.symbol || "").trim().toUpperCase();
   if (!symbol) {
     res.status(400).json({ error: "symbol is required" });
     return;
   }
 
-  // Check if already in watchlist
   const [existing] = await db
     .select()
     .from(watchlistTable)
-    .where(and(eq(watchlistTable.userId, req.user.id), eq(watchlistTable.symbol, symbol)));
+    .where(and(eq(watchlistTable.userId, userId), eq(watchlistTable.symbol, symbol)));
 
   if (existing) {
     res.status(201).json(existing);
@@ -57,7 +58,7 @@ router.post("/watchlist", async (req, res): Promise<void> => {
 
   const [item] = await db
     .insert(watchlistTable)
-    .values({ userId: req.user.id, symbol })
+    .values({ userId, symbol })
     .returning();
   res.status(201).json(item);
 });
@@ -67,13 +68,14 @@ router.delete("/watchlist/:symbol", async (req, res): Promise<void> => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  const userId = req.user!.id;
   const symbol = Array.isArray(req.params.symbol)
     ? req.params.symbol[0]
     : req.params.symbol;
 
   await db
     .delete(watchlistTable)
-    .where(and(eq(watchlistTable.userId, req.user.id), eq(watchlistTable.symbol, symbol.toUpperCase())));
+    .where(and(eq(watchlistTable.userId, userId), eq(watchlistTable.symbol, symbol.toUpperCase())));
 
   res.sendStatus(204);
 });
@@ -83,19 +85,20 @@ router.get("/watchlist/prices", async (req, res): Promise<void> => {
     res.json([]);
     return;
   }
+  const userId = req.user!.id;
   const items = await db
     .select()
     .from(watchlistTable)
-    .where(eq(watchlistTable.userId, req.user.id));
+    .where(eq(watchlistTable.userId, userId));
 
   const prices = await Promise.all(
     items.map(async (item) => {
       const quote = await finnhubQuote(item.symbol);
       return {
         symbol: item.symbol,
-        currentPrice: quote?.c || 0,
-        changePercent: quote?.dp || 0,
-        change: quote?.d || 0,
+        currentPrice: (quote?.c as number) || 0,
+        changePercent: (quote?.dp as number) || 0,
+        change: (quote?.d as number) || 0,
       };
     })
   );

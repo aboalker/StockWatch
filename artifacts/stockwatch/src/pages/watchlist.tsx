@@ -13,12 +13,14 @@ export default function WatchlistPage() {
   const { user, isLoading: authLoading, login } = useAuth();
   const [input, setInput] = useState("");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: watchlist, isLoading: wlLoading, refetch } = useGetWatchlist({
-    query: { enabled: !!user },
+    query: { enabled: !!user } as any,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: prices } = useGetWatchlistPrices({
-    query: { enabled: !!user && (watchlist?.length ?? 0) > 0 },
+    query: { enabled: !!user && (watchlist?.length ?? 0) > 0 } as any,
   });
 
   const addMutation = useAddToWatchlist({

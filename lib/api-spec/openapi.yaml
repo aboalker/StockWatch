@@ -219,6 +219,16 @@ paths:
           schema:
             type: string
             default: D
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: Technical indicators

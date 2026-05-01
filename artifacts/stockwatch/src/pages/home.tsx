@@ -4,6 +4,7 @@ import {
   useGetStockQuote,
   useGetStockCandles,
   useGetCompanyProfile,
+  type GetStockCandlesResolution,
 } from "@workspace/api-client-react";
 import {
   AreaChart,
@@ -14,7 +15,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, TrendingDown, Search, Building2, Globe, Users } from "lucide-react";
+import { TrendingUp, TrendingDown, Search, Building2, Globe, Users, BarChart2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,14 @@ function formatPct(p: number | undefined) {
   return `${sign}${p.toFixed(2)}%`;
 }
 
+function formatVolume(v: number | undefined) {
+  if (v == null || v === 0) return "—";
+  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`;
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+  return v.toLocaleString("ar-SA");
+}
+
 const PERIODS = [
   { label: "أسبوع", value: "W", resolution: "60", from: 7 },
   { label: "شهر", value: "M", resolution: "D", from: 30 },
@@ -54,7 +63,8 @@ export default function HomePage() {
 
   const { data: searchResults } = useSearchStocks(
     { q: query },
-    { query: { enabled: query.length >= 2 } }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { query: { enabled: query.length >= 2 } as any }
   );
 
   const now = Math.floor(Date.now() / 1000);
@@ -63,7 +73,7 @@ export default function HomePage() {
   const { data: quote, isLoading: quoteLoading } = useGetStockQuote(symbol);
   const { data: profile } = useGetCompanyProfile(symbol);
   const { data: candles, isLoading: candlesLoading } = useGetStockCandles(symbol, {
-    resolution: period.resolution,
+    resolution: period.resolution as GetStockCandlesResolution,
     from,
     to: now,
   });
@@ -193,6 +203,15 @@ export default function HomePage() {
                     <p className="text-sm font-semibold">${formatPrice(quote?.pc)}</p>
                   </div>
                 </div>
+                {candles?.v && candles.v.length > 0 && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-border mt-2">
+                    <BarChart2 className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">الحجم:</span>
+                    <span className="text-xs font-semibold text-foreground">
+                      {formatVolume(candles.v[candles.v.length - 1] as number)}
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

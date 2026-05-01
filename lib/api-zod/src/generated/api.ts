@@ -168,6 +168,8 @@ export const GetStockTechnicalsQueryParams = zod.object({
   resolution: zod.coerce
     .string()
     .default(getStockTechnicalsQueryResolutionDefault),
+  from: zod.coerce.number().optional(),
+  to: zod.coerce.number().optional(),
 });
 
 export const GetStockTechnicalsResponse = zod.object({
