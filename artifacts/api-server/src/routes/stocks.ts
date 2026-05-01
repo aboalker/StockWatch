@@ -151,6 +151,44 @@ router.get("/stocks/:symbol/quote", async (req, res): Promise<void> => {
   }
 });
 
+async function fetchYahooCandles(
+  symbol: string,
+  from: number,
+  to: number,
+  resolution: string,
+): Promise<{ c: number[]; h: number[]; l: number[]; o: number[]; v: number[]; t: number[]; s: string }> {
+  const intervalMap: Record<string, string> = {
+    "1": "1m", "5": "5m", "15": "15m", "30": "30m",
+    "60": "60m", "D": "1d", "W": "1wk", "M": "1mo",
+  };
+  const interval = intervalMap[resolution] ?? "1d";
+
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${from}&period2=${to}&interval=${interval}&includePrePost=false`;
+  const resp = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+      "Accept": "application/json",
+    },
+  });
+  if (!resp.ok) throw new Error(`Yahoo Finance error: ${resp.status}`);
+  const json: any = await resp.json();
+  const result = json?.chart?.result?.[0];
+  if (!result) throw new Error("No data from Yahoo Finance");
+
+  const timestamps: number[] = result.timestamp ?? [];
+  const quotes = result.indicators?.quote?.[0] ?? {};
+
+  return {
+    t: timestamps,
+    c: quotes.close ?? [],
+    h: quotes.high ?? [],
+    l: quotes.low ?? [],
+    o: quotes.open ?? [],
+    v: quotes.volume ?? [],
+    s: timestamps.length > 0 ? "ok" : "no_data",
+  };
+}
+
 router.get("/stocks/:symbol/candles", async (req, res): Promise<void> => {
   try {
     const symbol = Array.isArray(req.params.symbol) ? req.params.symbol[0] : req.params.symbol;
@@ -159,12 +197,22 @@ router.get("/stocks/:symbol/candles", async (req, res): Promise<void> => {
     const from = req.query.from ? Number(req.query.from) : now - 365 * 24 * 3600;
     const to = req.query.to ? Number(req.query.to) : now;
 
-    const data = await finnhub("/stock/candle", {
-      symbol: symbol.toUpperCase(),
-      resolution,
-      from,
-      to,
-    });
+    let data;
+    try {
+      const finnhubData = await finnhub("/stock/candle", {
+        symbol: symbol.toUpperCase(),
+        resolution,
+        from,
+        to,
+      });
+      if (finnhubData.s === "ok" && finnhubData.c?.length) {
+        data = finnhubData;
+      } else {
+        throw new Error("No Finnhub data");
+      }
+    } catch {
+      data = await fetchYahooCandles(symbol.toUpperCase(), from, to, resolution);
+    }
 
     res.json({
       c: data.c || [],
@@ -210,16 +258,27 @@ router.get("/stocks/:symbol/technicals", async (req, res): Promise<void> => {
     const symbol = Array.isArray(req.params.symbol) ? req.params.symbol[0] : req.params.symbol;
     const resolution = String(req.query.resolution || "D");
     const now = Math.floor(Date.now() / 1000);
-    const from = now - 365 * 24 * 3600;
+    const reqFrom = req.query.from ? Number(req.query.from) : now - 365 * 24 * 3600;
+    const from = Math.min(reqFrom, now - 90 * 24 * 3600);
 
-    const data = await finnhub("/stock/candle", {
-      symbol: symbol.toUpperCase(),
-      resolution,
-      from,
-      to: now,
-    });
+    let data: any;
+    try {
+      const finnhubData = await finnhub("/stock/candle", {
+        symbol: symbol.toUpperCase(),
+        resolution,
+        from,
+        to: now,
+      });
+      if (finnhubData.s === "ok" && finnhubData.c?.length) {
+        data = finnhubData;
+      } else {
+        throw new Error("No Finnhub data");
+      }
+    } catch {
+      data = await fetchYahooCandles(symbol.toUpperCase(), from, now, resolution);
+    }
 
-    if (!data.c || data.s !== "ok") {
+    if (!data.c || data.s !== "ok" || !data.c.length) {
       res.json({
         symbol: symbol.toUpperCase(),
         rsi: { values: [], timestamps: [] },
@@ -269,9 +328,12 @@ router.get("/stocks/compare", async (req, res): Promise<void> => {
     const results = await Promise.all(
       symbols.map(async (symbol) => {
         const [candles, quote, profile] = await Promise.all([
-          finnhub("/stock/candle", { symbol, resolution, from, to: now }).catch(() => ({
-            c: [], h: [], l: [], o: [], v: [], t: [], s: "no_data",
-          })),
+          finnhub("/stock/candle", { symbol, resolution, from, to: now })
+            .then((d: any) => (d.s === "ok" && d.c?.length ? d : null))
+            .catch(() => null)
+            .then((d: any) => d ?? fetchYahooCandles(symbol, from, now, resolution).catch(() => ({
+              c: [], h: [], l: [], o: [], v: [], t: [], s: "no_data",
+            }))),
           finnhub("/quote", { symbol }).catch(() => ({ c: 0, dp: 0 })),
           finnhub("/stock/profile2", { symbol }).catch(() => ({ name: symbol })),
         ]);

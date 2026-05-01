@@ -61,29 +61,33 @@ export default function TechnicalPage() {
     to: now,
   });
 
-  const priceData = candles?.t?.map((t: number, i: number) => ({
-    time: new Date(t * 1000).toLocaleDateString("ar-SA", { month: "short", day: "numeric" }),
-    price: candles.c?.[i],
-    sma20: technicals?.sma20?.[i],
-    sma50: technicals?.sma50?.[i],
-    ema20: technicals?.ema20?.[i],
-  })) ?? [];
+  const timestamps = candles?.t ?? technicals?.rsi?.timestamps ?? [];
 
-  const rsiData = candles?.t?.map((t: number, i: number) => ({
+  const priceData = timestamps.map((t: number, i: number) => ({
     time: new Date(t * 1000).toLocaleDateString("ar-SA", { month: "short", day: "numeric" }),
-    rsi: technicals?.rsi?.[i],
-  })) ?? [];
+    price: candles?.c?.[i] ?? null,
+    sma20: technicals?.sma20?.values?.[i] ?? null,
+    sma50: technicals?.sma50?.values?.[i] ?? null,
+  }));
 
-  const macdData = candles?.t?.map((t: number, i: number) => ({
+  const rsiData = (technicals?.rsi?.timestamps ?? []).map((t: number, i: number) => ({
     time: new Date(t * 1000).toLocaleDateString("ar-SA", { month: "short", day: "numeric" }),
-    macd: technicals?.macd?.[i],
-    signal: technicals?.macdSignal?.[i],
-    histogram: technicals?.macdHistogram?.[i],
-  })) ?? [];
+    rsi: technicals?.rsi?.values?.[i] ?? null,
+  }));
 
-  const lastRsi = technicals?.rsi?.at(-1);
-  const lastMacd = technicals?.macd?.at(-1);
-  const lastSignal = technicals?.macdSignal?.at(-1);
+  const macdData = (technicals?.macd?.timestamps ?? []).map((t: number, i: number) => ({
+    time: new Date(t * 1000).toLocaleDateString("ar-SA", { month: "short", day: "numeric" }),
+    macd: technicals?.macd?.macdLine?.[i] ?? null,
+    signal: technicals?.macd?.signalLine?.[i] ?? null,
+    histogram: technicals?.macd?.histogram?.[i] ?? null,
+  }));
+
+  const lastRsi = technicals?.rsi?.values?.filter(Boolean).at(-1) as number | undefined;
+  const lastMacd = technicals?.macd?.macdLine?.filter(Boolean).at(-1) as number | undefined;
+  const lastSignal = technicals?.macd?.signalLine?.filter(Boolean).at(-1) as number | undefined;
+  const lastSma20 = technicals?.sma20?.values?.filter(Boolean).at(-1) as number | undefined;
+  const lastSma50 = technicals?.sma50?.values?.filter(Boolean).at(-1) as number | undefined;
+
   const rsiSignal = getRsiSignal(lastRsi);
   const macdSignal = getMacdSignal(lastMacd, lastSignal);
 
@@ -98,11 +102,11 @@ export default function TechnicalPage() {
         <p className="text-sm text-muted-foreground">RSI وMACD والمتوسطات المتحركة</p>
       </div>
 
-      <div className="flex gap-3 items-center">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex gap-3 items-center flex-wrap">
+        <div className="relative">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            className="pr-9 bg-card border-border"
+            className="pr-9 bg-card border-border w-48"
             placeholder="رمز السهم"
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -132,8 +136,8 @@ export default function TechnicalPage() {
         {[
           { label: "RSI (14)", value: lastRsi?.toFixed(1), signal: rsiSignal },
           { label: "MACD", value: lastMacd?.toFixed(3), signal: macdSignal },
-          { label: "SMA 20", value: technicals?.sma20?.at(-1)?.toFixed(2) ? `$${technicals.sma20.at(-1)?.toFixed(2)}` : undefined },
-          { label: "SMA 50", value: technicals?.sma50?.at(-1)?.toFixed(2) ? `$${technicals.sma50.at(-1)?.toFixed(2)}` : undefined },
+          { label: "SMA 20", value: lastSma20 != null ? `$${lastSma20.toFixed(2)}` : undefined, signal: undefined },
+          { label: "SMA 50", value: lastSma50 != null ? `$${lastSma50.toFixed(2)}` : undefined, signal: undefined },
         ].map(({ label, value, signal }) => (
           <Card key={label} className="bg-card border-card-border">
             <CardContent className="p-4">
@@ -153,9 +157,9 @@ export default function TechnicalPage() {
 
       <Card className="bg-card border-card-border">
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-3">
-            <CardTitle className="text-base font-semibold">السعر والمتوسطات المتحركة</CardTitle>
-            <div className="flex gap-2 text-xs">
+          <div className="flex items-center gap-3 flex-wrap">
+            <CardTitle className="text-base font-semibold">السعر والمتوسطات المتحركة — {symbol}</CardTitle>
+            <div className="flex gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><div className="w-3 h-0.5 bg-chart-1 rounded" /> السعر</span>
               <span className="flex items-center gap-1"><div className="w-3 h-0.5 bg-chart-2 rounded" /> SMA20</span>
               <span className="flex items-center gap-1"><div className="w-3 h-0.5 bg-chart-3 rounded" /> SMA50</span>
@@ -165,11 +169,11 @@ export default function TechnicalPage() {
         <CardContent>
           {techLoading ? (
             <div className="h-56 bg-muted/30 rounded-lg animate-pulse" />
-          ) : (
+          ) : priceData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={priceData}>
                 <defs>
-                  <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="pg2" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="hsl(217 90% 58%)" stopOpacity={0.2} />
                     <stop offset="95%" stopColor="hsl(217 90% 58%)" stopOpacity={0} />
                   </linearGradient>
@@ -178,11 +182,15 @@ export default function TechnicalPage() {
                 <XAxis dataKey="time" tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
                 <Tooltip contentStyle={{ backgroundColor: "hsl(222 25% 10%)", border: "1px solid hsl(222 20% 18%)", borderRadius: 8, color: "hsl(210 20% 92%)" }} />
-                <Area type="monotone" dataKey="price" stroke="hsl(217 90% 58%)" strokeWidth={2} fill="url(#pg)" dot={false} name="السعر" />
-                <Line type="monotone" dataKey="sma20" stroke="hsl(142 76% 55%)" strokeWidth={1.5} dot={false} name="SMA20" />
-                <Line type="monotone" dataKey="sma50" stroke="hsl(38 92% 50%)" strokeWidth={1.5} dot={false} name="SMA50" />
+                <Area type="monotone" dataKey="price" stroke="hsl(217 90% 58%)" strokeWidth={2} fill="url(#pg2)" dot={false} name="السعر" connectNulls />
+                <Line type="monotone" dataKey="sma20" stroke="hsl(142 76% 55%)" strokeWidth={1.5} dot={false} name="SMA20" connectNulls />
+                <Line type="monotone" dataKey="sma50" stroke="hsl(38 92% 50%)" strokeWidth={1.5} dot={false} name="SMA50" connectNulls />
               </AreaChart>
             </ResponsiveContainer>
+          ) : (
+            <div className="h-56 flex items-center justify-center text-muted-foreground text-sm">
+              لا توجد بيانات — جرّب فترة زمنية أطول
+            </div>
           )}
         </CardContent>
       </Card>
@@ -192,7 +200,14 @@ export default function TechnicalPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold">RSI (14)</CardTitle>
-              <Badge className={cn("text-xs", rsiSignal.color === "text-red-400" ? "bg-red-500/20 text-red-400" : rsiSignal.color === "text-green-400" ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400")} variant="outline">
+              <Badge
+                className={cn("text-xs",
+                  rsiSignal.color === "text-red-400" ? "bg-red-500/20 text-red-400 border-red-500/30" :
+                  rsiSignal.color === "text-green-400" ? "bg-green-500/20 text-green-400 border-green-500/30" :
+                  "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+                )}
+                variant="outline"
+              >
                 {rsiSignal.label}
               </Badge>
             </div>
@@ -200,18 +215,20 @@ export default function TechnicalPage() {
           <CardContent>
             {techLoading ? (
               <div className="h-44 bg-muted/30 rounded-lg animate-pulse" />
-            ) : (
+            ) : rsiData.length > 0 ? (
               <ResponsiveContainer width="100%" height={180}>
                 <AreaChart data={rsiData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(222 20% 16%)" />
                   <XAxis dataKey="time" tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }} tickLine={false} axisLine={false} />
                   <YAxis domain={[0, 100]} tick={{ fill: "hsl(215 18% 52%)", fontSize: 10 }} tickLine={false} axisLine={false} />
                   <Tooltip contentStyle={{ backgroundColor: "hsl(222 25% 10%)", border: "1px solid hsl(222 20% 18%)", borderRadius: 8, color: "hsl(210 20% 92%)" }} />
-                  <ReferenceLine y={70} stroke="hsl(0 84% 58%)" strokeDasharray="3 3" />
-                  <ReferenceLine y={30} stroke="hsl(142 76% 55%)" strokeDasharray="3 3" />
-                  <Area type="monotone" dataKey="rsi" stroke="hsl(195 80% 48%)" strokeWidth={2} fill="hsl(195 80% 48% / 0.15)" dot={false} name="RSI" />
+                  <ReferenceLine y={70} stroke="hsl(0 84% 58%)" strokeDasharray="4 2" label={{ value: "70", fill: "hsl(0 84% 58%)", fontSize: 10 }} />
+                  <ReferenceLine y={30} stroke="hsl(142 76% 55%)" strokeDasharray="4 2" label={{ value: "30", fill: "hsl(142 76% 55%)", fontSize: 10 }} />
+                  <Area type="monotone" dataKey="rsi" stroke="hsl(195 80% 48%)" strokeWidth={2} fill="hsl(195 80% 48% / 0.15)" dot={false} name="RSI" connectNulls />
                 </AreaChart>
               </ResponsiveContainer>
+            ) : (
+              <div className="h-44 flex items-center justify-center text-muted-foreground text-sm">لا توجد بيانات</div>
             )}
           </CardContent>
         </Card>
@@ -220,7 +237,12 @@ export default function TechnicalPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold">MACD</CardTitle>
-              <Badge className={cn("text-xs", macdSignal.color === "text-red-400" ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400")} variant="outline">
+              <Badge
+                className={cn("text-xs",
+                  macdSignal.color === "text-red-400" ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-green-500/20 text-green-400 border-green-500/30"
+                )}
+                variant="outline"
+              >
                 {macdSignal.label}
               </Badge>
             </div>
@@ -228,7 +250,7 @@ export default function TechnicalPage() {
           <CardContent>
             {techLoading ? (
               <div className="h-44 bg-muted/30 rounded-lg animate-pulse" />
-            ) : (
+            ) : macdData.length > 0 ? (
               <ResponsiveContainer width="100%" height={180}>
                 <ComposedChart data={macdData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(222 20% 16%)" />
@@ -237,10 +259,12 @@ export default function TechnicalPage() {
                   <Tooltip contentStyle={{ backgroundColor: "hsl(222 25% 10%)", border: "1px solid hsl(222 20% 18%)", borderRadius: 8, color: "hsl(210 20% 92%)" }} />
                   <ReferenceLine y={0} stroke="hsl(222 20% 25%)" />
                   <Bar dataKey="histogram" name="الهيستوغرام" fill="hsl(195 80% 48%)" opacity={0.6} />
-                  <Line type="monotone" dataKey="macd" stroke="hsl(217 90% 58%)" strokeWidth={1.5} dot={false} name="MACD" />
-                  <Line type="monotone" dataKey="signal" stroke="hsl(0 84% 58%)" strokeWidth={1.5} dot={false} name="إشارة" />
+                  <Line type="monotone" dataKey="macd" stroke="hsl(217 90% 58%)" strokeWidth={1.5} dot={false} name="MACD" connectNulls />
+                  <Line type="monotone" dataKey="signal" stroke="hsl(0 84% 58%)" strokeWidth={1.5} dot={false} name="إشارة" connectNulls />
                 </ComposedChart>
               </ResponsiveContainer>
+            ) : (
+              <div className="h-44 flex items-center justify-center text-muted-foreground text-sm">لا توجد بيانات</div>
             )}
           </CardContent>
         </Card>
