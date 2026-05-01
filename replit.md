@@ -5,7 +5,13 @@
 Full-stack Arabic RTL stock analysis SaaS dashboard. pnpm workspace monorepo with React+Vite frontend and Express backend.
 
 ## Stack
+#بب
 
+
+
+
+3chv nbv mbm
+#vjbhkbkmkbk
 - **Monorepo tool**: pnpm workspaces
 - **Node.js version**: 24
 - **Package manager**: pnpm
